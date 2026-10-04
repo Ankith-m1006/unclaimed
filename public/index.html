@@ -6,6 +6,7 @@
 <title>Unclaimed</title>
 <meta name="description" content="Check which good first issues are actually free. Gemma reads each issue thread for you.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M1.75 2.9c0-.64.51-1.15 1.15-1.15h4.43c.31 0 .6.12.82.34l5.75 5.75c.45.45.45 1.18 0 1.63l-4.44 4.44c-.45.45-1.18.45-1.63 0L2.09 8.16a1.15 1.15 0 0 1-.34-.82Z' fill='none' stroke='%23d24d0e' stroke-width='1.5'/%3E%3Ccircle cx='5.1' cy='5.1' r='1.3' fill='%23d24d0e'/%3E%3C/svg%3E">
+<script>try { const t = new URLSearchParams(location.search).get("theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch {}</script>
 <style>
 /* GitHub-flavoured: system fonts, Primer-like colours, an issue list in a bordered box.
    Icons: Octicons, Copyright (c) GitHub Inc., MIT licence, see THIRD_PARTY_NOTICES.md. */
@@ -35,7 +36,7 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --canvas: #0d1117; --subtle: #151b23; --fg: #f0f6fc; --muted: #9198a1; --border: #3d444d; --border-muted: #3d444db3;
     --link: #4493f8; --open: #3fb950; --done: #ab7df8; --attention: #d29922; --attention-bg: #bb800926; --closed: #f85149;
     --brand: #f0763a; --brand-hover: #f58b56; --pr: #ab7df8; --assigned: #8b949e;
@@ -84,7 +85,7 @@ form { display: flex; gap: 8px; flex-wrap: wrap; }
 .field.label { flex: 0 1 230px; }
 .btn { font: 600 14px var(--font); border-radius: 6px; padding: 5px 16px; line-height: 20px; cursor: pointer; border: 1px solid #1f232826; background: var(--btn-primary); color: #fff; }
 .btn:hover { background: var(--btn-primary-hover); }
-@media (prefers-color-scheme: dark) { .btn { color: #1b0d05; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn { color: #1b0d05; } }
 .btn:disabled { opacity: .6; cursor: progress; }
 .examples { font-size: 12px; color: var(--muted); display: flex; gap: 6px 10px; flex-wrap: wrap; margin-top: -6px; }
 .examples button { font: inherit; background: none; border: 0; padding: 0; color: var(--link); cursor: pointer; }
@@ -136,7 +137,7 @@ form { display: flex; gap: 8px; flex-wrap: wrap; }
 .p-pr { background: var(--pr); }
 .p-assigned { background: var(--assigned); }
 .p-blocked { background: var(--closed); }
-@media (prefers-color-scheme: dark) { .pill { color: #0d1117; } }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .pill { color: #0d1117; } }
 .avatars { display: flex; align-items: center; }
 .avatars img { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--canvas); margin-left: -6px; background: var(--subtle); }
 .avatars img:first-child { margin-left: 0; }
