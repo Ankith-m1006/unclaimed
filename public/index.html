@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unclaimed</title>
+<meta name="description" content="Find open-source issues nobody has taken yet. Gemma reads every thread for you.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23136f4c'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one search bar, then a stream of issue cards with a coloured verdict edge; available issues float to the top. */
+:root {
+  --bg: #f3f5f1;
+  --surface: #ffffff;
+  --ink: #142019;
+  --muted: #5b6a61;
+  --line: #d9e0db;
+  --brand: #136f4c;
+  --brand-ink: #ffffff;
+  --ok: #136f4c;   --ok-soft: #dff2e8;
+  --claim: #9a5b00; --claim-soft: #fbefd6;
+  --taken: #4b5563; --taken-soft: #e9ecef;
+  --block: #9b2c2c; --block-soft: #f8e3e1;
+  --display: "Familjen Grotesk", "Segoe UI", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1512; --surface: #161e1a; --ink: #e5ece7; --muted: #95a59b; --line: #26322c;
+    --brand: #3fbf8a; --brand-ink: #062015;
+    --ok: #4fd39b; --ok-soft: #12352a; --claim: #f0b75e; --claim-soft: #3a2a10;
+    --taken: #b4bcc5; --taken-soft: #262d33; --block: #f08f86; --block-soft: #3d1c1a;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--body); }
+.wrap { max-width: 900px; margin-inline: auto; padding-inline: 16px; padding-block: 40px 72px; display: grid; gap: 28px; }
+h1 { font: 700 clamp(2.4rem, 7vw, 3.6rem)/1 var(--display); letter-spacing: -0.03em; margin: 0; }
+h1 span { color: var(--brand); }
+.lede { margin: 10px 0 0; color: var(--muted); max-width: 60ch; }
+form { display: grid; grid-template-columns: 1fr 220px auto; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
+@media (max-width: 640px) { form { grid-template-columns: 1fr; } }
+label { display: grid; gap: 4px; font: 500 12px/1 var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; min-width: 0; }
+input { font: 16px var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; width: 100%; }
+input:focus, button:focus-visible, a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+button { font: 700 16px var(--display); background: var(--brand); color: var(--brand-ink); border: 0; border-radius: 10px; padding: 0 22px; min-height: 46px; cursor: pointer; align-self: end; }
+button:disabled { opacity: .6; cursor: progress; }
+.examples { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: 14px; }
+.examples button { font: 500 13px var(--mono); background: transparent; color: var(--ink); border: 1px solid var(--line); min-height: 32px; padding: 0 12px; border-radius: 999px; }
+.status { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font: 14px var(--mono); color: var(--muted); }
+.status b { color: var(--ink); font-weight: 500; }
+.bar { height: 4px; background: var(--line); border-radius: 4px; overflow: hidden; flex: 1 1 160px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--brand); transition: width .3s ease; }
+.list { display: grid; gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--edge); border-radius: 12px; padding: 16px 18px; display: grid; gap: 8px; min-width: 0; }
+.card[data-v="available"] { --edge: var(--ok); }
+.card[data-v="claimed"] { --edge: var(--claim); }
+.card[data-v="assigned"], .card[data-v="has_pr"], .card[data-v="closed"] { --edge: var(--taken); }
+.card[data-v="not_ready"], .card[data-v="error"] { --edge: var(--block); }
+.top { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
+.top a { font: 700 1.05rem/1.3 var(--display); color: var(--ink); text-decoration: none; min-width: 0; overflow-wrap: anywhere; }
+.top a:hover { text-decoration: underline; }
+.pill { font: 500 12px/1 var(--mono); padding: 6px 9px; border-radius: 999px; white-space: nowrap; }
+.pill.available { background: var(--ok-soft); color: var(--ok); }
+.pill.claimed { background: var(--claim-soft); color: var(--claim); }
+.pill.assigned, .pill.has_pr, .pill.closed { background: var(--taken-soft); color: var(--taken); }
+.pill.not_ready, .pill.error { background: var(--block-soft); color: var(--block); }
+.meta { font: 13px var(--mono); color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.reasons { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+.quotes { display: grid; gap: 6px; margin: 2px 0 0; }
+.quotes blockquote { margin: 0; padding: 8px 12px; border-left: 3px solid var(--claim); background: var(--claim-soft); border-radius: 0 8px 8px 0; font-size: 14.5px; min-width: 0; overflow-wrap: anywhere; }
+.quotes cite { display: block; font: 12.5px var(--mono); font-style: normal; color: var(--muted); margin-bottom: 2px; }
+.quotes cite a { color: inherit; }
+.ai { border-top: 1px dashed var(--line); padding-top: 8px; display: grid; gap: 4px; font-size: 15px; }
+.ai small { font: 12px var(--mono); color: var(--muted); }
+.empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; padding: 22px; text-align: center; }
+footer { color: var(--muted); font-size: 14px; display: grid; gap: 4px; }
+footer a { color: var(--brand); }
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Un<span>claimed</span></h1>
+    <p class="lede">Find open-source issues nobody has taken yet. GitHub tells us who is assigned and which pull requests exist; Gemma, an open model running on our own server, reads every comment thread to spot the people who already asked for the issue.</p>
+  </header>
+
+  <form id="f">
+    <label for="target">Repository or issue link
+      <input id="target" name="target" value="kestra-io/kestra" autocomplete="off" spellcheck="false" required>
+    </label>
+    <label for="label">Label
+      <input id="label" name="label" value="good first issue" autocomplete="off" spellcheck="false">
+    </label>
+    <button id="go" type="submit">Scan</button>
+  </form>
+
+  <div class="examples">
+    Try:
+    <button type="button" data-t="kestra-io/kestra" data-l="good first issue">kestra-io/kestra</button>
+    <button type="button" data-t="kestra-io/plugin-amqp" data-l="good first issue">kestra-io/plugin-amqp</button>
+    <button type="button" data-t="kestra-io/blueprints" data-l="">kestra-io/blueprints</button>
+  </div>
+
+  <div class="status" id="status" hidden>
+    <span id="progress">Starting…</span>
+    <span class="bar" aria-hidden="true"><i id="bar"></i></span>
+    <span id="counts"></span>
+  </div>
+
+  <div class="list" id="list">
+    <p class="empty">Pick a repository and press Scan. The newest issues with that label are checked first.</p>
+  </div>
+
+  <footer>
+    <span>Verdicts: <b>Available</b> nobody asked · <b>Claimed</b> someone asked or is working on it · <b>Assigned</b> / <b>Has a PR</b> taken · <b>Not ready</b> maintainers don't want PRs yet.</span>
+    <span>Always read the thread yourself before asking for an issue. Built by <a href="https://github.com/Ankith-m1006">Ankith-m1006</a> with <a href="https://github.com/SanjanaG-01">SanjanaG-01</a>. Source on GitHub.</span>
+  </footer>
+</div>
+
+<script>
+const LABEL = { available: "Available", claimed: "Claimed", assigned: "Assigned", has_pr: "Has a PR", not_ready: "Not ready", closed: "Closed", error: "Couldn't read" };
+const ORDER = { available: 0, claimed: 1, has_pr: 2, assigned: 3, not_ready: 4, closed: 5, error: 6 };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let results = [];
+
+function render() {
+  results.sort((a, b) => ORDER[a.verdict] - ORDER[b.verdict] || b.number - a.number);
+  $("list").innerHTML = results.map((r) => `
+    <article class="card" data-v="${r.verdict}">
+      <div class="top">
+        <a href="${esc(r.url)}" target="_blank" rel="noopener">#${r.number} ${esc(r.title)}</a>
+        <span class="pill ${r.verdict}">${LABEL[r.verdict]}</span>
+      </div>
+      <div class="meta">${r.repo ? `<span>${esc(r.repo)}</span>` : ""}${r.created ? `<span>opened ${esc(r.created)}</span>` : ""}${r.comments != null ? `<span>${r.comments} comment${r.comments === 1 ? "" : "s"}</span>` : ""}${(r.labels || []).slice(0, 4).map((l) => `<span>${esc(l)}</span>`).join("")}</div>
+      <ul class="reasons">${(r.reasons || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+      ${(r.claims || []).filter((c) => c.quote).length ? `<div class="quotes">${r.claims.filter((c) => c.quote).map((c) => `
+        <blockquote><cite><a href="${esc(c.url)}" target="_blank" rel="noopener">@${esc(c.user)} · ${esc(c.date)}</a>${c.kind === "says_working_on_it" ? " · says they're working on it" : c.kind === "opened_a_pr" ? " · says a PR is open" : ""}</cite>“${esc(c.quote)}”</blockquote>`).join("")}</div>` : ""}
+      ${r.summary ? `<div class="ai"><span>${esc(r.summary)}</span><small>${r.difficulty ? esc(r.difficulty) + " · " : ""}read by ${r.source === "gemma" ? "Gemma" : "keyword fallback (Gemma was unavailable)"}</small></div>` : ""}
+    </article>`).join("") || `<p class="empty">No open issues with that label.</p>`;
+  const c = results.reduce((m, r) => (m[r.verdict] = (m[r.verdict] || 0) + 1, m), {});
+  $("counts").innerHTML = Object.keys(LABEL).filter((k) => c[k]).map((k) => `<b>${c[k]}</b> ${LABEL[k].toLowerCase()}`).join(" · ");
+}
+
+async function run(target, label) {
+  $("go").disabled = true; results = []; $("status").hidden = false; $("bar").style.width = "0";
+  $("progress").textContent = "Reading GitHub…"; $("list").innerHTML = ""; $("counts").textContent = "";
+  let total = 0, seen = 0;
+  try {
+    const res = await fetch(`/api/scan?${new URLSearchParams({ target, label })}`);
+    const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream: true }); let i;
+      while ((i = buf.indexOf("\n")) >= 0) {
+        const line = buf.slice(0, i); buf = buf.slice(i + 1); if (!line) continue;
+        const m = JSON.parse(line);
+        if (m.type === "start") { total = m.total; $("progress").textContent = total ? `Checking ${total} issues with ${m.model}…` : "No matching issues."; }
+        if (m.type === "issue") { results.push(m.issue); }
+        if (m.type === "issue_error") { results.push({ verdict: "error", number: m.number, title: m.title, reasons: [m.message] }); }
+        if (m.type === "issue" || m.type === "issue_error") { seen++; $("bar").style.width = `${Math.round((seen / total) * 100)}%`; $("progress").textContent = `Checked ${seen} of ${total}`; render(); }
+        if (m.type === "done") { $("progress").textContent = `Checked ${seen} issue${seen === 1 ? "" : "s"}`; if (!seen) render(); }
+        if (m.type === "error") { $("progress").textContent = m.message; }
+      }
+    }
+  } catch { $("progress").textContent = "Lost the connection. Try again."; }
+  $("go").disabled = false;
+}
+
+$("f").addEventListener("submit", (e) => { e.preventDefault(); run($("target").value, $("label").value); });
+document.querySelectorAll(".examples button").forEach((b) => b.addEventListener("click", () => { $("target").value = b.dataset.t; $("label").value = b.dataset.l; run(b.dataset.t, b.dataset.l); }));
+</script>
+</body>
+</html>
