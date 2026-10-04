@@ -7,7 +7,8 @@
 <meta name="description" content="Check which good first issues are actually free. Gemma reads each issue thread for you.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%231a7f37' d='M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z'/%3E%3Cpath fill='%231a7f37' d='M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z'/%3E%3C/svg%3E">
 <style>
-/* GitHub-flavoured: system fonts, Primer-like colours, an issue list in a bordered box. Icons are GitHub Octicons (MIT). */
+/* GitHub-flavoured: system fonts, Primer-like colours, an issue list in a bordered box.
+   Icons: Octicons, Copyright (c) GitHub Inc., MIT licence, see THIRD_PARTY_NOTICES.md. */
 :root {
   --canvas: #ffffff;
   --subtle: #f6f8fa;
@@ -53,8 +54,20 @@ svg.oct { width: 16px; height: 16px; fill: currentColor; flex: none; vertical-al
 .topbar .right { margin-left: auto; font-size: 13px; color: var(--muted); display: flex; gap: 14px; }
 
 main { max-width: 1012px; margin-inline: auto; padding: 24px 16px 64px; display: grid; gap: 16px; }
-.intro { color: var(--muted); max-width: 72ch; margin: 0; }
-.intro b { color: var(--fg); font-weight: 600; }
+.hero { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px 18px; align-items: center; border: 1px solid var(--border); border-radius: 6px; padding: 18px 20px; background: linear-gradient(180deg, var(--subtle), var(--canvas)); }
+.hero-ic { width: 32px; height: 32px; color: var(--open); }
+.hero h1 { margin: 0; font-size: 20px; font-weight: 600; line-height: 1.3; }
+.hero p { margin: 4px 0 0; color: var(--muted); max-width: 64ch; }
+.hero p b { color: var(--fg); font-weight: 600; }
+.hero-stat { border-left: 1px solid var(--border); padding-left: 18px; display: grid; gap: 2px; max-width: 220px; }
+.hero-stat .n { font-size: 26px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.hero-stat .n b { color: var(--open); font-weight: 600; }
+.hero-stat .arrow { color: var(--muted); font-weight: 400; }
+.hero-stat .l { font-size: 12px; color: var(--muted); }
+@media (max-width: 720px) {
+  .hero { grid-template-columns: auto minmax(0, 1fr); }
+  .hero-stat { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--border); padding: 10px 0 0; max-width: none; }
+}
 
 form { display: flex; gap: 8px; flex-wrap: wrap; }
 .field { flex: 1 1 280px; display: flex; align-items: center; min-width: 0; background: var(--canvas); border: 1px solid var(--border); border-radius: 6px; padding: 0 8px; }
@@ -150,12 +163,22 @@ footer { max-width: 1012px; margin-inline: auto; padding: 0 16px 40px; color: va
     <svg class="oct" style="color:var(--open)"><use href="#i-issue"/></svg>
     <span class="crumb"><b>Unclaimed</b></span>
     <span class="badge">Gemma 3</span>
-    <span class="right"><a href="https://github.com/Ankith-m1006/unclaimed">Source</a><span>by <a href="https://github.com/Ankith-m1006">@Ankith-m1006</a> &amp; <a href="https://github.com/SanjanaG-01">@SanjanaG-01</a></span></span>
+    <span class="right"><a href="https://github.com/Ankith-m1006/unclaimed">Source</a></span>
   </div>
 </header>
 
 <main>
-  <p class="intro">GitHub lists an issue as <b>open</b> even when it already has a pull request or five people asking for it in the comments. Unclaimed checks assignees and linked PRs, then has <b>Gemma</b> (running on our own server) read each thread, so you only see issues that are really free.</p>
+  <section class="hero" aria-labelledby="hero-h">
+    <svg class="oct hero-ic" viewBox="0 0 16 16"><use href="#i-issue"/></svg>
+    <div class="hero-text">
+      <h1 id="hero-h">Find issues nobody has taken yet</h1>
+      <p>GitHub calls an issue <b>open</b> even when it already has a pull request or five people asking for it. Unclaimed checks the facts, then lets <b>Gemma</b> read every comment thread.</p>
+    </div>
+    <div class="hero-stat" title="kestra-io/kestra, 4 Oct 2026">
+      <span class="n">31 <span class="arrow">→</span> <b>0</b></span>
+      <span class="l">“open” good first issues in kestra-io/kestra vs. actually free</span>
+    </div>
+  </section>
 
   <form id="f">
     <label class="field" for="target"><span class="k">repo:</span><input id="target" value="kestra-io/kestra" autocomplete="off" spellcheck="false" required aria-label="Repository or issue link"></label>
@@ -187,9 +210,12 @@ footer { max-width: 1012px; margin-inline: auto; padding: 0 16px 40px; color: va
 </main>
 
 <footer>
+  <span>Built by <a href="https://github.com/Ankith-m1006">@Ankith-m1006</a> &amp; <a href="https://github.com/SanjanaG-01">@SanjanaG-01</a></span>
   <span>Unclaimed · MIT</span>
   <a href="https://github.com/Ankith-m1006/unclaimed">github.com/Ankith-m1006/unclaimed</a>
   <span>Model: Gemma 3 via Ollama, self-hosted</span>
+  <span>Icons: <a href="https://github.com/primer/octicons">Octicons</a> © GitHub, Inc. (MIT)</span>
+  <span>Not affiliated with GitHub.</span>
 </footer>
 
 <script>

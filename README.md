@@ -37,4 +37,4 @@ GITHUB_TOKEN=<optional read-only token> node server.js
 
 [Ankith-m1006](https://github.com/Ankith-m1006), for and with [SanjanaG-01](https://github.com/SanjanaG-01).
 
-MIT licence.
+MIT licence. Icons are [Octicons](https://github.com/primer/octicons) (MIT, © GitHub, Inc.); see THIRD_PARTY_NOTICES.md. Not affiliated with GitHub.
