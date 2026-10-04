@@ -55,7 +55,14 @@ async function collectFacts(owner, repo, issue) {
     gh(`/repos/${owner}/${repo}/issues/${issue.number}/timeline?per_page=100`),
   ]);
   const prs = new Map();
+  // Many maintainers keep their org membership private, so GitHub reports them as
+  // CONTRIBUTOR. Anyone who labelled, assigned, closed or milestoned this issue has
+  // triage rights, so treat them as a maintainer too.
+  const triagers = new Set();
   for (const ev of timeline) {
+    if (["labeled", "unlabeled", "assigned", "unassigned", "milestoned", "closed", "reopened"].includes(ev.event) && ev.actor?.login) {
+      triagers.add(ev.actor.login.toLowerCase());
+    }
     const src = ev.event === "cross-referenced" ? ev.source?.issue : null;
     if (src?.pull_request) {
       prs.set(src.html_url, {
@@ -70,7 +77,8 @@ async function collectFacts(owner, repo, issue) {
   return {
     comments: comments.map((c) => ({
       user: c.user?.login,
-      role: c.author_association, // OWNER, MEMBER, COLLABORATOR, CONTRIBUTOR, NONE...
+      // OWNER, MEMBER, COLLABORATOR, CONTRIBUTOR, NONE...; upgraded when the timeline shows triage rights
+      role: triagers.has(c.user?.login?.toLowerCase()) && !MAINTAINER_ROLES.has(c.author_association) ? "TRIAGER" : c.author_association,
       date: c.created_at.slice(0, 10),
       body: c.body || "",
       url: c.html_url,
@@ -102,7 +110,7 @@ const SCHEMA = {
   required: ["claims", "maintainer_said", "summary", "difficulty"],
 };
 
-const MAINTAINER_ROLES = new Set(["OWNER", "MEMBER", "COLLABORATOR"]);
+const MAINTAINER_ROLES = new Set(["OWNER", "MEMBER", "COLLABORATOR", "TRIAGER"]);
 
 function threadText(issue, comments) {
   const lines = comments.slice(-15).map((c) => {
@@ -174,6 +182,7 @@ function evidence(comments, user) {
     .replace(/^>.*$/gm, " ")
     .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/https?:\/\/\S+/g, "(link)")
     .replace(/[*_`#]/g, "")
     .replace(/\s+/g, " ")
     .trim();
@@ -280,6 +289,32 @@ async function judge(owner, repo, issue, cache) {
   return result;
 }
 
+// ---------- Labels ----------
+// Repos spell the same label differently: "good first issue", "good-first-issue",
+// "Good First Issue", "first-timers-only"... Match the user's label to the repo's own.
+
+const norm = (s) => String(s).toLowerCase().replace(/[\s_\-:]+/g, "");
+const BEGINNER = ["goodfirstissue", "goodfirstissues", "goodfirstbug", "firsttimersonly", "beginnerfriendly", "beginner", "easy", "starter", "goodfirstcontribution"];
+
+async function resolveLabel(owner, repo, wanted) {
+  const labels = [];
+  for (let page = 1; page <= 3; page++) {
+    const batch = await gh(`/repos/${owner}/${repo}/labels?per_page=100&page=${page}`);
+    labels.push(...batch.map((l) => l.name));
+    if (batch.length < 100) break;
+  }
+  const w = norm(wanted);
+  const exact = labels.find((l) => norm(l) === w);
+  if (exact) return exact;
+  if (BEGINNER.includes(w) || w.includes("firstissue")) {
+    for (const candidate of BEGINNER) {
+      const hit = labels.find((l) => norm(l) === candidate);
+      if (hit) return hit;
+    }
+  }
+  return labels.find((l) => norm(l).includes(w)) || null;
+}
+
 // ---------- HTTP ----------
 
 const cache = new Map();
@@ -289,16 +324,28 @@ async function scan(req, res, url) {
   const send = (obj) => res.write(JSON.stringify(obj) + "\n");
   try {
     const target = parseTarget(url.searchParams.get("target"));
-    const label = (url.searchParams.get("label") || "good first issue").trim();
+    const asked = url.searchParams.has("label") ? url.searchParams.get("label").trim() : "good first issue";
+    let label = asked;
     let issues;
+    const list = async (lbl) => {
+      const q = new URLSearchParams({ state: "open", sort: "created", direction: "desc", per_page: "50" });
+      if (lbl) q.set("labels", lbl);
+      return (await gh(`/repos/${target.owner}/${target.repo}/issues?${q}`)).filter((i) => !i.pull_request).slice(0, MAX_ISSUES);
+    };
     if (target.number) {
       issues = [await gh(`/repos/${target.owner}/${target.repo}/issues/${target.number}`)];
+      label = null;
     } else {
-      const q = new URLSearchParams({ state: "open", sort: "created", direction: "desc", per_page: "50" });
-      if (label) q.set("labels", label);
-      issues = (await gh(`/repos/${target.owner}/${target.repo}/issues?${q}`)).filter((i) => !i.pull_request).slice(0, MAX_ISSUES);
+      issues = await list(label);
+      if (!issues.length && label) {
+        const match = await resolveLabel(target.owner, target.repo, label);
+        if (match && match !== label) {
+          label = match;
+          issues = await list(label);
+        }
+      }
     }
-    send({ type: "start", total: issues.length, model: MODEL });
+    send({ type: "start", total: issues.length, model: MODEL, label, asked });
     for (const issue of issues) {
       try {
         send({ type: "issue", issue: await judge(target.owner, target.repo, issue, cache) });

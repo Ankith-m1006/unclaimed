@@ -162,7 +162,14 @@ async function run(target, label) {
       while ((i = buf.indexOf("\n")) >= 0) {
         const line = buf.slice(0, i); buf = buf.slice(i + 1); if (!line) continue;
         const m = JSON.parse(line);
-        if (m.type === "start") { total = m.total; $("progress").textContent = total ? `Checking ${total} issues with ${m.model}…` : "No matching issues."; }
+        if (m.type === "start") {
+          total = m.total;
+          const relabel = m.label && m.asked && m.label !== m.asked ? ` (this repo calls the label “${m.label}”)` : "";
+          if (m.label && m.label !== m.asked) $("label").value = m.label;
+          $("progress").textContent = total
+            ? `Checking ${total} issue${total === 1 ? "" : "s"} with ${m.model}${relabel}…`
+            : m.asked ? `No open issues labelled “${m.asked}”, and no similar label found. Leave the label empty to check all open issues.` : "No open issues.";
+        }
         if (m.type === "issue") { results.push(m.issue); }
         if (m.type === "issue_error") { results.push({ verdict: "error", number: m.number, title: m.title, reasons: [m.message] }); }
         if (m.type === "issue" || m.type === "issue_error") { seen++; $("bar").style.width = `${Math.round((seen / total) * 100)}%`; $("progress").textContent = `Checked ${seen} of ${total}`; render(); }
