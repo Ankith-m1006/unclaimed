@@ -4,155 +4,259 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Unclaimed</title>
-<meta name="description" content="Find open-source issues nobody has taken yet. Gemma reads every thread for you.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23136f4c'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='white' stroke-width='3'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@500;700&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<meta name="description" content="Check which good first issues are actually free. Gemma reads each issue thread for you.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%231a7f37' d='M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z'/%3E%3Cpath fill='%231a7f37' d='M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z'/%3E%3C/svg%3E">
 <style>
-/* Layout: one search bar, then a stream of issue cards with a coloured verdict edge; available issues float to the top. */
+/* GitHub-flavoured: system fonts, Primer-like colours, an issue list in a bordered box. Icons are GitHub Octicons (MIT). */
 :root {
-  --bg: #f3f5f1;
-  --surface: #ffffff;
-  --ink: #142019;
-  --muted: #5b6a61;
-  --line: #d9e0db;
-  --brand: #136f4c;
-  --brand-ink: #ffffff;
-  --ok: #136f4c;   --ok-soft: #dff2e8;
-  --claim: #9a5b00; --claim-soft: #fbefd6;
-  --taken: #4b5563; --taken-soft: #e9ecef;
-  --block: #9b2c2c; --block-soft: #f8e3e1;
-  --display: "Familjen Grotesk", "Segoe UI", system-ui, sans-serif;
-  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --canvas: #ffffff;
+  --subtle: #f6f8fa;
+  --fg: #1f2328;
+  --muted: #59636e;
+  --border: #d1d9e0;
+  --border-muted: #d1d9e0b3;
+  --link: #0969da;
+  --open: #1a7f37;
+  --done: #8250df;
+  --attention: #9a6700;
+  --attention-bg: #fff8c5;
+  --closed: #d1242f;
+  --btn-primary: #1f883d;
+  --btn-primary-hover: #1c8139;
+  --btn-bg: #f6f8fa;
+  --header: #f6f8fa;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0f1512; --surface: #161e1a; --ink: #e5ece7; --muted: #95a59b; --line: #26322c;
-    --brand: #3fbf8a; --brand-ink: #062015;
-    --ok: #4fd39b; --ok-soft: #12352a; --claim: #f0b75e; --claim-soft: #3a2a10;
-    --taken: #b4bcc5; --taken-soft: #262d33; --block: #f08f86; --block-soft: #3d1c1a;
+    --canvas: #0d1117; --subtle: #151b23; --fg: #f0f6fc; --muted: #9198a1; --border: #3d444d; --border-muted: #3d444db3;
+    --link: #4493f8; --open: #3fb950; --done: #ab7df8; --attention: #d29922; --attention-bg: #bb800926; --closed: #f85149;
+    --btn-primary: #238636; --btn-primary-hover: #29903b; --btn-bg: #212830; --header: #010409;
     color-scheme: dark;
   }
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--body); }
-.wrap { max-width: 900px; margin-inline: auto; padding-inline: 16px; padding-block: 40px 72px; display: grid; gap: 28px; }
-h1 { font: 700 clamp(2.4rem, 7vw, 3.6rem)/1 var(--display); letter-spacing: -0.03em; margin: 0; }
-h1 span { color: var(--brand); }
-.lede { margin: 10px 0 0; color: var(--muted); max-width: 60ch; }
-form { display: grid; grid-template-columns: 1fr 220px auto; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; }
-@media (max-width: 640px) { form { grid-template-columns: 1fr; } }
-label { display: grid; gap: 4px; font: 500 12px/1 var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; min-width: 0; }
-input { font: 16px var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; width: 100%; }
-input:focus, button:focus-visible, a:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
-button { font: 700 16px var(--display); background: var(--brand); color: var(--brand-ink); border: 0; border-radius: 10px; padding: 0 22px; min-height: 46px; cursor: pointer; align-self: end; }
-button:disabled { opacity: .6; cursor: progress; }
-.examples { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--muted); font-size: 14px; }
-.examples button { font: 500 13px var(--mono); background: transparent; color: var(--ink); border: 1px solid var(--line); min-height: 32px; padding: 0 12px; border-radius: 999px; }
 [hidden] { display: none !important; }
-.status { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font: 14px var(--mono); color: var(--muted); }
-.status b { color: var(--ink); font-weight: 500; }
-.bar { height: 4px; background: var(--line); border-radius: 4px; overflow: hidden; flex: 1 1 160px; }
-.bar i { display: block; height: 100%; width: 0; background: var(--brand); transition: width .3s ease; }
-.list { display: grid; gap: 12px; }
-.card { background: var(--surface); border: 1px solid var(--line); border-left: 5px solid var(--edge); border-radius: 12px; padding: 16px 18px; display: grid; gap: 8px; min-width: 0; }
-.card[data-v="available"] { --edge: var(--ok); }
-.card[data-v="claimed"] { --edge: var(--claim); }
-.card[data-v="assigned"], .card[data-v="has_pr"], .card[data-v="closed"] { --edge: var(--taken); }
-.card[data-v="not_ready"], .card[data-v="error"] { --edge: var(--block); }
-.top { display: flex; gap: 10px; align-items: baseline; justify-content: space-between; flex-wrap: wrap; }
-.top a { font: 700 1.05rem/1.3 var(--display); color: var(--ink); text-decoration: none; min-width: 0; overflow-wrap: anywhere; }
-.top a:hover { text-decoration: underline; }
-.pill { font: 500 12px/1 var(--mono); padding: 6px 9px; border-radius: 999px; white-space: nowrap; }
-.pill.available { background: var(--ok-soft); color: var(--ok); }
-.pill.claimed { background: var(--claim-soft); color: var(--claim); }
-.pill.assigned, .pill.has_pr, .pill.closed { background: var(--taken-soft); color: var(--taken); }
-.pill.not_ready, .pill.error { background: var(--block-soft); color: var(--block); }
-.meta { font: 13px var(--mono); color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
-.reasons { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
-.quotes { display: grid; gap: 6px; margin: 2px 0 0; }
-.quotes blockquote { margin: 0; padding: 8px 12px; border-left: 3px solid var(--claim); background: var(--claim-soft); border-radius: 0 8px 8px 0; font-size: 14.5px; min-width: 0; overflow-wrap: anywhere; }
-.quotes cite { display: block; font: 12.5px var(--mono); font-style: normal; color: var(--muted); margin-bottom: 2px; }
-.quotes cite a { color: inherit; }
-.ai { border-top: 1px dashed var(--line); padding-top: 8px; display: grid; gap: 4px; font-size: 15px; }
-.ai small { font: 12px var(--mono); color: var(--muted); }
-.empty { color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; padding: 22px; text-align: center; }
-footer { color: var(--muted); font-size: 14px; display: grid; gap: 4px; }
-footer a { color: var(--brand); }
-@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+body { margin: 0; background: var(--canvas); color: var(--fg); font: 14px/1.5 var(--font); }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: -2px; border-radius: 6px; }
+svg.oct { width: 16px; height: 16px; fill: currentColor; flex: none; vertical-align: text-bottom; }
+
+.topbar { background: var(--header); border-bottom: 1px solid var(--border); }
+.topbar .in { max-width: 1012px; margin-inline: auto; padding: 14px 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 16px; }
+.topbar .crumb { color: var(--fg); }
+.topbar .crumb b { font-weight: 600; }
+.topbar .badge { font-size: 12px; font-weight: 500; color: var(--muted); border: 1px solid var(--border); border-radius: 2em; padding: 0 7px; line-height: 18px; }
+.topbar .right { margin-left: auto; font-size: 13px; color: var(--muted); display: flex; gap: 14px; }
+
+main { max-width: 1012px; margin-inline: auto; padding: 24px 16px 64px; display: grid; gap: 16px; }
+.intro { color: var(--muted); max-width: 72ch; margin: 0; }
+.intro b { color: var(--fg); font-weight: 600; }
+
+form { display: flex; gap: 8px; flex-wrap: wrap; }
+.field { flex: 1 1 280px; display: flex; align-items: center; min-width: 0; background: var(--canvas); border: 1px solid var(--border); border-radius: 6px; padding: 0 8px; }
+.field:focus-within { border-color: var(--link); box-shadow: inset 0 0 0 1px var(--link); }
+.field .k { color: var(--muted); font: 12px var(--mono); padding-right: 6px; white-space: nowrap; }
+.field input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--fg); font: 14px var(--font); padding: 5px 0; line-height: 20px; }
+.field input:focus { outline: none; }
+.field.label { flex: 0 1 230px; }
+.btn { font: 500 14px var(--font); border-radius: 6px; padding: 5px 16px; line-height: 20px; cursor: pointer; border: 1px solid #1f232826; background: var(--btn-primary); color: #fff; }
+.btn:hover { background: var(--btn-primary-hover); }
+.btn:disabled { opacity: .6; cursor: progress; }
+.examples { font-size: 12px; color: var(--muted); display: flex; gap: 6px 10px; flex-wrap: wrap; margin-top: -6px; }
+.examples button { font: inherit; background: none; border: 0; padding: 0; color: var(--link); cursor: pointer; }
+.examples button:hover { text-decoration: underline; }
+
+.box { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.box-head { background: var(--subtle); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; gap: 6px 18px; flex-wrap: wrap; align-items: center; }
+.tab { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-weight: 400; white-space: nowrap; }
+.tab b { font-weight: 600; color: var(--fg); }
+.tab.free b, .tab.free svg { color: var(--open); }
+.box-head .status { margin-left: auto; color: var(--muted); font-size: 12px; }
+.progress { height: 2px; background: transparent; }
+.progress i { display: block; height: 100%; width: 0; background: var(--link); transition: width .25s ease; }
+
+.row { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 8px 10px; padding: 10px 16px; border-top: 1px solid var(--border-muted); align-items: start; }
+.row:first-child { border-top: 0; }
+.row:hover { background: var(--subtle); }
+.row > svg { margin-top: 3px; }
+.ic-free { color: var(--open); }
+.ic-claimed { color: var(--attention); }
+.ic-pr { color: var(--open); }
+.ic-assigned { color: var(--muted); }
+.ic-blocked { color: var(--closed); }
+.title { font-size: 16px; font-weight: 600; color: var(--fg); overflow-wrap: anywhere; }
+.title:hover { color: var(--link); }
+.lbl { display: inline-block; font-size: 12px; font-weight: 500; line-height: 18px; padding: 0 7px; border-radius: 2em; border: 1px solid var(--border); color: var(--fg); margin-left: 4px; vertical-align: 2px; white-space: nowrap; }
+.sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.verdict { font-size: 12px; margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; color: var(--fg); }
+.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 500; line-height: 20px; padding: 0 8px; border-radius: 2em; color: #fff; }
+.pill svg { width: 14px; height: 14px; }
+.p-free { background: var(--open); }
+.p-claimed { background: var(--attention); }
+.p-pr { background: var(--open); }
+.p-assigned { background: var(--muted); }
+.p-blocked { background: var(--closed); }
+@media (prefers-color-scheme: dark) { .pill { color: #0d1117; } }
+.avatars { display: flex; align-items: center; }
+.avatars img { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--canvas); margin-left: -6px; background: var(--subtle); }
+.avatars img:first-child { margin-left: 0; }
+.avatars span { color: var(--muted); font-size: 12px; margin-left: 6px; }
+.side { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 12px; white-space: nowrap; padding-top: 2px; }
+
+details { grid-column: 2 / -1; }
+summary { cursor: pointer; color: var(--muted); font-size: 12px; list-style: none; display: inline-flex; gap: 4px; align-items: center; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "▸"; font-size: 10px; }
+details[open] summary::before { content: "▾"; }
+.thread { margin-top: 8px; display: grid; gap: 8px; }
+.comment { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 10px; }
+.comment img { width: 32px; height: 32px; border-radius: 50%; background: var(--subtle); }
+.cbox { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; min-width: 0; }
+.cbox .ch { background: var(--subtle); border-bottom: 1px solid var(--border); padding: 6px 12px; font-size: 13px; color: var(--muted); }
+.cbox .ch b { color: var(--fg); font-weight: 600; }
+.cbox .cb { padding: 8px 12px; font-size: 14px; overflow-wrap: anywhere; }
+.gist { margin-top: 8px; font-size: 13px; color: var(--muted); }
+.gist b { color: var(--fg); font-weight: 600; }
+
+.blank { padding: 32px 16px; text-align: center; color: var(--muted); }
+.blank h3 { margin: 0 0 4px; font-size: 20px; font-weight: 600; color: var(--fg); }
+
+.flash { border: 1px solid var(--border); background: var(--subtle); border-radius: 6px; padding: 12px 16px; color: var(--muted); font-size: 13px; }
+.flash b { color: var(--fg); }
+footer { max-width: 1012px; margin-inline: auto; padding: 0 16px 40px; color: var(--muted); font-size: 12px; display: flex; gap: 6px 16px; flex-wrap: wrap; border-top: 1px solid var(--border); padding-top: 16px; }
+@media (max-width: 640px) {
+  .row { grid-template-columns: 16px minmax(0, 1fr); }
+  .side { grid-column: 2; }
+  .box-head .status { margin-left: 0; width: 100%; }
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Un<span>claimed</span></h1>
-    <p class="lede">Find open-source issues nobody has taken yet. GitHub tells us who is assigned and which pull requests exist; Gemma, an open model running on our own server, reads every comment thread to spot the people who already asked for the issue.</p>
-  </header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-issue" viewBox="0 0 16 16"><path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z"/><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm1.5 0a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm10.28-1.72-4.5 4.5a.75.75 0 0 1-1.06 0l-2-2a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l1.47 1.47 3.97-3.97a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"/></symbol>
+  <symbol id="i-pr" viewBox="0 0 16 16"><path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z"/></symbol>
+  <symbol id="i-person" viewBox="0 0 16 16"><path d="M10.561 8.073a6.005 6.005 0 0 1 3.432 5.142.75.75 0 1 1-1.498.07 4.5 4.5 0 0 0-8.99 0 .75.75 0 0 1-1.498-.07 6.004 6.004 0 0 1 3.431-5.142 3.999 3.999 0 1 1 5.123 0ZM10.5 5a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0Z"/></symbol>
+  <symbol id="i-comment" viewBox="0 0 16 16"><path d="M1 2.75C1 1.784 1.784 1 2.75 1h10.5c.966 0 1.75.784 1.75 1.75v7.5A1.75 1.75 0 0 1 13.25 12H9.06l-2.573 2.573A1.458 1.458 0 0 1 4 13.543V12H2.75A1.75 1.75 0 0 1 1 10.25Zm1.75-.25a.25.25 0 0 0-.25.25v7.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h4.5a.25.25 0 0 0 .25-.25v-7.5a.25.25 0 0 0-.25-.25Z"/></symbol>
+  <symbol id="i-slash" viewBox="0 0 16 16"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8c0 1.418.453 2.73 1.222 3.8l9.078-9.078A6.5 6.5 0 0 0 1.5 8Zm6.5 6.5a6.5 6.5 0 0 0 5.278-10.3L4.2 13.278A6.47 6.47 0 0 0 8 14.5Z"/></symbol>
+</svg>
+
+<header class="topbar">
+  <div class="in">
+    <svg class="oct" style="color:var(--open)"><use href="#i-issue"/></svg>
+    <span class="crumb"><b>Unclaimed</b></span>
+    <span class="badge">Gemma 3</span>
+    <span class="right"><a href="https://github.com/Ankith-m1006/unclaimed">Source</a><span>by <a href="https://github.com/Ankith-m1006">@Ankith-m1006</a> &amp; <a href="https://github.com/SanjanaG-01">@SanjanaG-01</a></span></span>
+  </div>
+</header>
+
+<main>
+  <p class="intro">GitHub lists an issue as <b>open</b> even when it already has a pull request or five people asking for it in the comments. Unclaimed checks assignees and linked PRs, then has <b>Gemma</b> (running on our own server) read each thread, so you only see issues that are really free.</p>
 
   <form id="f">
-    <label for="target">Repository or issue link
-      <input id="target" name="target" value="kestra-io/kestra" autocomplete="off" spellcheck="false" required>
-    </label>
-    <label for="label">Label
-      <input id="label" name="label" value="good first issue" autocomplete="off" spellcheck="false">
-    </label>
-    <button id="go" type="submit">Scan</button>
+    <label class="field" for="target"><span class="k">repo:</span><input id="target" value="kestra-io/kestra" autocomplete="off" spellcheck="false" required aria-label="Repository or issue link"></label>
+    <label class="field label" for="label"><span class="k">label:</span><input id="label" value="good first issue" autocomplete="off" spellcheck="false" aria-label="Label"></label>
+    <button class="btn" id="go" type="submit">Check issues</button>
   </form>
-
-  <div class="examples">
-    Try:
+  <div class="examples">Examples:
     <button type="button" data-t="kestra-io/kestra" data-l="good first issue">kestra-io/kestra</button>
-    <button type="button" data-t="kestra-io/plugin-amqp" data-l="good first issue">kestra-io/plugin-amqp</button>
-    <button type="button" data-t="kestra-io/blueprints" data-l="">kestra-io/blueprints</button>
+    <button type="button" data-t="freeCodeCamp/freeCodeCamp" data-l="good first issue">freeCodeCamp/freeCodeCamp</button>
+    <button type="button" data-t="https://github.com/kestra-io/kestra/issues/19930" data-l="">a single issue</button>
   </div>
 
-  <div class="status" id="status" hidden>
-    <span id="progress">Starting…</span>
-    <span class="bar" aria-hidden="true"><i id="bar"></i></span>
-    <span id="counts"></span>
-  </div>
+  <section class="box" aria-live="polite">
+    <div class="box-head">
+      <span class="tab free"><svg class="oct"><use href="#i-check"/></svg><b data-k="available">0</b> Free</span>
+      <span class="tab"><svg class="oct ic-claimed"><use href="#i-comment"/></svg><b data-k="claimed">0</b> Claimed</span>
+      <span class="tab"><svg class="oct ic-pr"><use href="#i-pr"/></svg><b data-k="has_pr">0</b> Has a PR</span>
+      <span class="tab"><svg class="oct ic-assigned"><use href="#i-person"/></svg><b data-k="assigned">0</b> Assigned</span>
+      <span class="tab"><svg class="oct ic-blocked"><use href="#i-slash"/></svg><b data-k="not_ready">0</b> Not ready</span>
+      <span class="status" id="progress">Not checked yet</span>
+    </div>
+    <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+    <div id="list">
+      <div class="blank"><h3>Check a repository</h3>Enter a repo and a label, then press <b>Check issues</b>. The newest matching issues are checked first.</div>
+    </div>
+  </section>
 
-  <div class="list" id="list">
-    <p class="empty">Pick a repository and press Scan. The newest issues with that label are checked first.</p>
-  </div>
+  <div class="flash"><b>How verdicts are decided.</b> Assigned, has a PR and not ready come straight from GitHub. Claimed and free come from Gemma reading the comments; every claim links to the comment it is based on. Always read the thread yourself before asking for an issue.</div>
+</main>
 
-  <footer>
-    <span>Verdicts: <b>Available</b> nobody asked · <b>Claimed</b> someone asked or is working on it · <b>Assigned</b> / <b>Has a PR</b> taken · <b>Not ready</b> maintainers don't want PRs yet.</span>
-    <span>Always read the thread yourself before asking for an issue. Built by <a href="https://github.com/Ankith-m1006">Ankith-m1006</a> with <a href="https://github.com/SanjanaG-01">SanjanaG-01</a>. Source on GitHub.</span>
-  </footer>
-</div>
+<footer>
+  <span>Unclaimed · MIT</span>
+  <a href="https://github.com/Ankith-m1006/unclaimed">github.com/Ankith-m1006/unclaimed</a>
+  <span>Model: Gemma 3 via Ollama, self-hosted</span>
+</footer>
 
 <script>
-const LABEL = { available: "Available", claimed: "Claimed", assigned: "Assigned", has_pr: "Has a PR", not_ready: "Not ready", closed: "Closed", error: "Couldn't read" };
+const V = {
+  available: { word: "Free", pill: "p-free", ic: "ic-free", icon: "i-check" },
+  claimed: { word: "Claimed", pill: "p-claimed", ic: "ic-claimed", icon: "i-comment" },
+  has_pr: { word: "Has a PR", pill: "p-pr", ic: "ic-pr", icon: "i-pr" },
+  assigned: { word: "Assigned", pill: "p-assigned", ic: "ic-assigned", icon: "i-person" },
+  not_ready: { word: "Not ready", pill: "p-blocked", ic: "ic-blocked", icon: "i-slash" },
+  closed: { word: "Closed", pill: "p-assigned", ic: "ic-assigned", icon: "i-issue" },
+  error: { word: "Couldn't read", pill: "p-blocked", ic: "ic-blocked", icon: "i-slash" },
+};
 const ORDER = { available: 0, claimed: 1, has_pr: 2, assigned: 3, not_ready: 4, closed: 5, error: 6 };
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const icon = (id, cls = "") => `<svg class="oct ${cls}"><use href="#${id}"/></svg>`;
+const avatar = (u, s = 40) => `https://github.com/${encodeURIComponent(u)}.png?size=${s}`;
+const fmtDate = (d) => d ? new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }) : "";
 let results = [];
+
+function row(r) {
+  const v = V[r.verdict];
+  const claims = r.claims || [];
+  let line = `<span class="pill ${v.pill}">${icon(v.icon)}${v.word}</span>`;
+  if (r.verdict === "claimed") {
+    const shown = claims.slice(0, 5).map((c) => `<img src="${avatar(c.user)}" alt="@${esc(c.user)}" title="@${esc(c.user)}" loading="lazy" width="20" height="20">`).join("");
+    line += `<span class="avatars">${shown}<span>${claims.length} ${claims.length === 1 ? "person asked" : "people asked"}</span></span>`;
+  } else if (r.verdict === "has_pr") {
+    line += (r.prs || []).map((p) => `<a href="${esc(p.url)}" target="_blank" rel="noopener">#${p.number}</a> by @${esc(p.author)} (${esc(p.state)})`).join(" · ");
+  } else {
+    line += `<span>${esc((r.reasons || [])[0] || "")}</span>`;
+  }
+  const maint = (r.reasons || []).find((x) => x.startsWith("Maintainer:"));
+  const thread = claims.filter((c) => c.quote).map((c) => `
+    <div class="comment"><img src="${avatar(c.user, 64)}" alt="" loading="lazy" width="32" height="32">
+      <div class="cbox"><div class="ch"><b>${esc(c.user)}</b> commented on <a href="${esc(c.url)}" target="_blank" rel="noopener">${fmtDate(c.date)}</a>${c.kind === "says_working_on_it" ? " · says they're working on it" : c.kind === "opened_a_pr" ? " · says a PR is open" : ""}</div><div class="cb">${esc(c.quote)}</div></div>
+    </div>`).join("");
+  const extra = thread || maint || r.summary
+    ? `<details${r.verdict === "claimed" && results.length <= 3 ? " open" : ""}><summary>${thread ? "Show what they said" : "Details"}</summary>
+        <div class="thread">${thread}</div>
+        ${maint ? `<div class="gist"><b>${esc(maint.split(":")[0])}:</b>${esc(maint.slice(maint.indexOf(":") + 1))}</div>` : ""}
+        ${r.summary ? `<div class="gist"><b>Gemma's summary${r.difficulty ? " (" + esc(r.difficulty) + ")" : ""}:</b> ${esc(r.summary)}</div>` : ""}
+      </details>` : "";
+  return `
+  <div class="row">
+    ${icon(v.icon, v.ic)}
+    <div>
+      <a class="title" href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.title)}</a>${(r.labels || []).slice(0, 2).map((l) => `<span class="lbl">${esc(l)}</span>`).join("")}
+      <div class="sub">${r.repo ? esc(r.repo) + " " : ""}#${r.number}${r.created ? " opened " + fmtDate(r.created) : ""}</div>
+      <div class="verdict">${line}</div>
+    </div>
+    <div class="side">${r.comments != null ? `${icon("i-comment")} ${r.comments}` : ""}</div>
+    ${extra}
+  </div>`;
+}
 
 function render() {
   results.sort((a, b) => ORDER[a.verdict] - ORDER[b.verdict] || b.number - a.number);
-  $("list").innerHTML = results.map((r) => `
-    <article class="card" data-v="${r.verdict}">
-      <div class="top">
-        <a href="${esc(r.url)}" target="_blank" rel="noopener">#${r.number} ${esc(r.title)}</a>
-        <span class="pill ${r.verdict}">${LABEL[r.verdict]}</span>
-      </div>
-      <div class="meta">${r.repo ? `<span>${esc(r.repo)}</span>` : ""}${r.created ? `<span>opened ${esc(r.created)}</span>` : ""}${r.comments != null ? `<span>${r.comments} comment${r.comments === 1 ? "" : "s"}</span>` : ""}${(r.labels || []).slice(0, 4).map((l) => `<span>${esc(l)}</span>`).join("")}</div>
-      <ul class="reasons">${(r.reasons || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
-      ${(r.claims || []).filter((c) => c.quote).length ? `<div class="quotes">${r.claims.filter((c) => c.quote).map((c) => `
-        <blockquote><cite><a href="${esc(c.url)}" target="_blank" rel="noopener">@${esc(c.user)} · ${esc(c.date)}</a>${c.kind === "says_working_on_it" ? " · says they're working on it" : c.kind === "opened_a_pr" ? " · says a PR is open" : ""}</cite>“${esc(c.quote)}”</blockquote>`).join("")}</div>` : ""}
-      ${r.summary ? `<div class="ai"><span>${esc(r.summary)}</span><small>${r.difficulty ? esc(r.difficulty) + " · " : ""}read by ${r.source === "gemma" ? "Gemma" : "keyword fallback (Gemma was unavailable)"}</small></div>` : ""}
-    </article>`).join("") || `<p class="empty">No open issues with that label.</p>`;
+  if (results.length) $("list").innerHTML = results.map(row).join("");
   const c = results.reduce((m, r) => (m[r.verdict] = (m[r.verdict] || 0) + 1, m), {});
-  $("counts").innerHTML = Object.keys(LABEL).filter((k) => c[k]).map((k) => `<b>${c[k]}</b> ${LABEL[k].toLowerCase()}`).join(" · ");
+  document.querySelectorAll(".box-head b[data-k]").forEach((b) => (b.textContent = c[b.dataset.k] || 0));
 }
 
 async function run(target, label) {
-  $("go").disabled = true; results = []; $("status").hidden = false; $("bar").style.width = "0";
-  $("progress").textContent = "Reading GitHub…"; $("list").innerHTML = ""; $("counts").textContent = "";
+  $("go").disabled = true; results = []; render();
+  $("list").innerHTML = `<div class="blank"><h3>Reading GitHub…</h3>Facts first, then Gemma reads the threads that are still undecided.</div>`;
+  $("bar").style.width = "0"; $("progress").textContent = "Loading…";
   let total = 0, seen = 0;
   try {
     const res = await fetch(`/api/scan?${new URLSearchParams({ target, label })}`);
@@ -165,17 +269,18 @@ async function run(target, label) {
         const m = JSON.parse(line);
         if (m.type === "start") {
           total = m.total;
-          const relabel = m.label && m.asked && m.label !== m.asked ? ` (this repo calls the label “${m.label}”)` : "";
           if (m.label && m.label !== m.asked) $("label").value = m.label;
-          $("progress").textContent = total
-            ? `Checking ${total} issue${total === 1 ? "" : "s"} with ${m.model}${relabel}…`
-            : m.asked ? `No open issues labelled “${m.asked}”, and no similar label found. Leave the label empty to check all open issues.` : "No open issues.";
+          $("progress").textContent = total ? `Checking ${total} issue${total === 1 ? "" : "s"}${m.label && m.asked && m.label !== m.asked ? ` · label is “${m.label}” here` : ""}` : "";
+          if (!total) $("list").innerHTML = `<div class="blank"><h3>No open issues found</h3>${m.asked ? `No issues labelled “${esc(m.asked)}” and no similar label in this repo. Leave the label empty to check every open issue.` : "This repository has no open issues."}</div>`;
         }
-        if (m.type === "issue") { results.push(m.issue); }
-        if (m.type === "issue_error") { results.push({ verdict: "error", number: m.number, title: m.title, reasons: [m.message] }); }
-        if (m.type === "issue" || m.type === "issue_error") { seen++; $("bar").style.width = `${Math.round((seen / total) * 100)}%`; $("progress").textContent = `Checked ${seen} of ${total}`; render(); }
-        if (m.type === "done") { $("progress").textContent = `Checked ${seen} issue${seen === 1 ? "" : "s"}`; if (!seen) render(); }
-        if (m.type === "error") { $("progress").textContent = m.message; }
+        if (m.type === "issue") results.push(m.issue);
+        if (m.type === "issue_error") results.push({ verdict: "error", number: m.number, title: m.title, reasons: [m.message] });
+        if (m.type === "issue" || m.type === "issue_error") {
+          seen++; $("bar").style.width = `${Math.round((seen / total) * 100)}%`;
+          $("progress").textContent = `Checked ${seen} of ${total}`; render();
+        }
+        if (m.type === "done" && seen) { $("progress").textContent = `${seen} issue${seen === 1 ? "" : "s"} checked`; setTimeout(() => ($("bar").style.width = "0"), 600); }
+        if (m.type === "error") { $("progress").textContent = ""; $("list").innerHTML = `<div class="blank"><h3>Couldn't check that</h3>${esc(m.message)}</div>`; }
       }
     }
   } catch { $("progress").textContent = "Lost the connection. Try again."; }
