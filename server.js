@@ -36,6 +36,17 @@ async function gh(path) {
   return res.json();
 }
 
+// Busy Hacktober issues pass 100 timeline events, which pushes linked PRs off page one.
+async function ghAll(path, maxPages = 10) {
+  const items = [];
+  for (let page = 1; page <= maxPages; page++) {
+    const batch = await gh(`${path}${path.includes("?") ? "&" : "?"}per_page=100&page=${page}`);
+    items.push(...batch);
+    if (batch.length < 100) break;
+  }
+  return items;
+}
+
 class UserError extends Error {}
 
 function parseTarget(input) {
@@ -50,11 +61,27 @@ function parseTarget(input) {
 const NOT_READY = /kestra-bot:not-ready|not ready for contributions/i;
 
 async function collectFacts(owner, repo, issue) {
-  const [comments, timeline] = await Promise.all([
-    issue.comments ? gh(`/repos/${owner}/${repo}/issues/${issue.number}/comments?per_page=100`) : [],
-    gh(`/repos/${owner}/${repo}/issues/${issue.number}/timeline?per_page=100`),
+  const [comments, timeline, mentions] = await Promise.all([
+    issue.comments ? ghAll(`/repos/${owner}/${repo}/issues/${issue.number}/comments`) : [],
+    ghAll(`/repos/${owner}/${repo}/issues/${issue.number}/timeline`),
+    // Fine-grained tokens get timelines with the cross-reference events removed, so
+    // also search for pull requests in this repo that mention the issue.
+    gh(`/search/issues?${new URLSearchParams({ q: `repo:${owner}/${repo} is:pr ${issue.number}`, per_page: "30" })}`).catch(() => ({ items: [] })),
   ]);
   const prs = new Map();
+  // "#123" or ".../issues/123", but not "other-org/other-repo#123" (common in Dependabot changelogs).
+  const refersTo = new RegExp(`(?:^|[^A-Za-z0-9_/.-])#${issue.number}(?![0-9])|github[.]com/${owner}/${repo}/issues/${issue.number}(?![0-9])`, "i");
+  for (const pr of mentions.items || []) {
+    if (!pr.pull_request || pr.user?.type === "Bot" || pr.created_at < issue.created_at) continue;
+    if (!refersTo.test(`${pr.title} ${pr.body || ""}`)) continue;
+    prs.set(pr.html_url, {
+      number: pr.number,
+      url: pr.html_url,
+      author: pr.user?.login,
+      state: pr.pull_request.merged_at ? "merged" : pr.state,
+      repo: `${owner}/${repo}`,
+    });
+  }
   // Many maintainers keep their org membership private, so GitHub reports them as
   // CONTRIBUTOR. Anyone who labelled, assigned, closed or milestoned this issue has
   // triage rights, so treat them as a maintainer too.
